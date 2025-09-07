@@ -17,7 +17,7 @@ import ZoomControls from "./ZoomControls";
 
 import CamundaBpmnModdle from "camunda-bpmn-moddle/resources/camunda.json";
 import BpmnControls from "./BpmnControls";
-import { SaveSVGResult } from "bpmn-js/lib/BaseViewer";
+import { SaveSVGResult, SaveXMLResult } from "bpmn-js/lib/BaseViewer";
 
 interface BpmnModelerProps {
   xml?: string;
@@ -212,6 +212,10 @@ const BpmnModeler = ({
     return await modelerRef.current?.saveSVG();
   };
 
+  const onDownloadXml = async (): Promise<SaveXMLResult | undefined> => {
+    return await modelerRef.current?.saveXML({ format: true });
+  };
+
   return (
     <div
       className={cn(
@@ -239,6 +243,7 @@ const BpmnModeler = ({
               isPanelCollapsed={isPanelCollapsed}
               onUploadDiagram={onUploadDiagram}
               onDownLoadSvg={onDownLoadSvg}
+              onDownloadXml={onDownloadXml}
             />
           </div>
         )}

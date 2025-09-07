@@ -11,7 +11,7 @@ import {
   IGRPToastProps,
   useIGRPToast,
 } from "@igrp/igrp-framework-react-design-system";
-import { SaveSVGResult } from "bpmn-js/lib/BaseViewer";
+import { SaveSVGResult, SaveXMLResult } from "bpmn-js/lib/BaseViewer";
 
 interface BpmnControlsProps {
   modeler: any;
@@ -21,6 +21,7 @@ interface BpmnControlsProps {
   isPanelCollapsed?: boolean;
   onUploadDiagram?: (xml: string) => void;
   onDownLoadSvg?: () => Promise<SaveSVGResult | undefined>;
+  onDownloadXml?: () => Promise<SaveXMLResult | undefined>;
 }
 
 const BpmnControls: React.FC<BpmnControlsProps> = ({
@@ -31,6 +32,7 @@ const BpmnControls: React.FC<BpmnControlsProps> = ({
   isPanelCollapsed,
   onUploadDiagram,
   onDownLoadSvg,
+  onDownloadXml,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,11 @@ const BpmnControls: React.FC<BpmnControlsProps> = ({
 
     setIsLoading(true);
     try {
-      const { xml } = await modeler.saveXML({ format: true });
+      const result = await onDownloadXml?.();
+      const xml = result?.xml;
+      if (!xml) {
+        throw new Error("Invalid XML output from modeler.saveXML()");
+      }
 
       const filename = generateFilename(processKey, processName, "bpmn");
       downloadFile(xml, filename, "application/xml");
