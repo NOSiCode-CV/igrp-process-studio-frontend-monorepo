@@ -1,6 +1,6 @@
 {
   "name": "@igrp/framework-process-studio-client",
-  "version": "0.0.1-beta.8",
+  "version": "0.0.1-beta.9",
   "type": "module",
   "description": "IGRP Process Studio Frontend | Client",
   "keywords": [
@@ -26,7 +26,7 @@
     "release": "pnpm build && yarn publish --registry=https://sonatype.nosi.cv/repository/igrp/ --tag latest"
   },
   "dependencies": {
-    "@igrp/framework-process-studio-types": "0.0.1-beta.6"
+    "@igrp/framework-process-studio-types": "latest"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",
