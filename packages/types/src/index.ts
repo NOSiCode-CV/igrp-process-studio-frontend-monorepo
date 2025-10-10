@@ -26,6 +26,7 @@ export interface ProcessDefinition {
   statusDesc: string;
   bpmFileContent: string;
   processKey: string;
+  deploymentDate: string;
 }
 
 export interface ProcessDefinitionContent {

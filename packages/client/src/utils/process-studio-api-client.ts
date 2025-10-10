@@ -1,5 +1,5 @@
 import { BaseApiClient } from './base-api-client';
-import { ApiClientConfig } from './types';
+import { ApiClientConfig, ProcessDefinitionUpdate } from './types';
 import type {
   ProcessDefinition,
   Project,
@@ -67,7 +67,7 @@ export class ProcessStudioApiClient extends BaseApiClient {
 
   async updateProcessDefinition(
     projectId: string,
-    processDefinition: ProcessDefinition,
+    processDefinition: ProcessDefinitionUpdate,
   ): Promise<ProcessDefinition> {
     const response = await this.put<ProcessDefinition>(
       `/api/v1/projects/process-definitions/${projectId}`,

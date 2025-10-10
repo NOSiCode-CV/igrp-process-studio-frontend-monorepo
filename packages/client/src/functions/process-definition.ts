@@ -29,8 +29,9 @@ export const createProcessDefinitionFunctions = (apiClient: ProcessStudioApiClie
     createOrUpdateProcessDefinition: async (
       processDefinition: ProcessDefinition,
     ): Promise<ProcessDefinition> => {
+      const { processDefinitionId, ...rest } = processDefinition;
       if (processDefinition.processDefinitionId) {
-        return apiClient.updateProcessDefinition(processDefinition.projectId, processDefinition);
+        return apiClient.updateProcessDefinition(processDefinition.projectId, rest);
       } else {
         return apiClient.createProcessDefinition(processDefinition.projectId, processDefinition);
       }
