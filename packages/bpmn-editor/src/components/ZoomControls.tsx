@@ -7,9 +7,15 @@ import {
 
 interface ZoomControlsProps {
   modeler: any;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
-const ZoomControls: React.FC<ZoomControlsProps> = ({ modeler }) => {
+const ZoomControls: React.FC<ZoomControlsProps> = ({
+  modeler,
+  onToggleFullscreen,
+  isFullscreen = false,
+}) => {
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
   // Zoom step size
@@ -126,9 +132,22 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({ modeler }) => {
         }
       };
 
+      // Add fullscreen shortcut (F11)
+      const fullscreenListener = function (context: { keyEvent: any }) {
+        const event = context.keyEvent;
+
+        if (keyboard.isKey(["F11"], event)) {
+          onToggleFullscreen?.();
+          return true;
+        }
+      };
+
       keyboard.addListener(zoomInListener);
       keyboard.addListener(zoomOutListener);
       keyboard.addListener(resetZoomListener);
+      if (onToggleFullscreen) {
+        keyboard.addListener(fullscreenListener);
+      }
 
       return () => {
         // Clean up keyboard listeners
@@ -136,6 +155,9 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({ modeler }) => {
           keyboard.removeListener(zoomInListener);
           keyboard.removeListener(zoomOutListener);
           keyboard.removeListener(resetZoomListener);
+          if (onToggleFullscreen) {
+            keyboard.removeListener(fullscreenListener);
+          }
         } catch (error) {
           console.error("Error removing keyboard listeners:", error);
         }
@@ -144,7 +166,13 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({ modeler }) => {
       console.error("Error setting up keyboard shortcuts:", error);
       // Continue rendering the component even if keyboard shortcuts fail
     }
-  }, [modeler, handleZoomIn, handleZoomOut, handleResetZoom]);
+  }, [
+    modeler,
+    handleZoomIn,
+    handleZoomOut,
+    handleResetZoom,
+    onToggleFullscreen,
+  ]);
 
   // Register touch gestures for pinch zoom
   useEffect(() => {
@@ -226,13 +254,22 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({ modeler }) => {
         iconName="ZoomOut"
       ></IGRPButton>
       <IGRPSeparator />
-      <IGRPButton
-        onClick={handleResetZoom}
-        title="Ajustar à Tela (Ctrl+0)"
-        size={"icon"}
-        variant="outline"
-        iconName="Maximize"
-      ></IGRPButton>
+      {onToggleFullscreen && (
+        <>
+          <IGRPSeparator />
+          <IGRPButton
+            onClick={onToggleFullscreen}
+            title={
+              isFullscreen
+                ? "Sair do Ecrã Completo (F11)"
+                : "Ecrã Completo (F11)"
+            }
+            size={"icon"}
+            variant="outline"
+            iconName={isFullscreen ? "Minimize2" : "Maximize2"}
+          ></IGRPButton>
+        </>
+      )}
     </div>
   );
 };

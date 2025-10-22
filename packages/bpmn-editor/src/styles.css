@@ -212,6 +212,9 @@
   .h-full {
     height: 100%;
   }
+  .h-screen {
+    height: 100vh;
+  }
   .w-0 {
     width: calc(var(--spacing) * 0);
   }

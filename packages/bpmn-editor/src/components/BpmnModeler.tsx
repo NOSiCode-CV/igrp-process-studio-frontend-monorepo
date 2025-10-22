@@ -1,6 +1,6 @@
 import { cn } from "../lib/utils";
 import BpmnJS from "bpmn-js/lib/Modeler";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import "bpmn-js/dist/assets/bpmn-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -38,7 +38,20 @@ const BpmnModeler = ({
 }: BpmnModelerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnJS | null>(null);
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isModelerReady, setIsModelerReady] = useState(false);
+
+  // Track if this is internal change to avoid reloading
+  const isInternalChangeRef = useRef(false);
+  // Store initial XML to load only once
+  const initialXmlRef = useRef<string | undefined>(xml);
+
+  // Update initialXml when processKey changes (different diagram)
+  useEffect(() => {
+    initialXmlRef.current = xml;
+  }, [xml, processKey]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -73,7 +86,13 @@ const BpmnModeler = ({
         const checkReady = () => {
           try {
             const canvas = modeler.get("canvas");
-            if (canvas && (canvas as any)._layers) {
+            // Check that canvas exists, has _layers, and _container is ready
+            if (
+              canvas &&
+              (canvas as any)._layers &&
+              (canvas as any)._container &&
+              (canvas as any)._container.clientWidth > 0
+            ) {
               resolve();
             } else {
               setTimeout(checkReady, 10);
@@ -84,6 +103,17 @@ const BpmnModeler = ({
         };
         checkReady();
       });
+    };
+
+    // Safe zoom function with error handling
+    const safeZoom = (canvas: any, mode: string | number) => {
+      try {
+        if (canvas && typeof canvas.zoom === "function") {
+          canvas.zoom(mode);
+        }
+      } catch (err) {
+        // Silently ignore zoom errors during initialization
+      }
     };
 
     // Initialize the modeler with proper error handling
@@ -100,39 +130,46 @@ const BpmnModeler = ({
 
         const canvas = modeler.get("canvas");
 
-        if (xml) {
+        // Use initial XML (only loads once during initialization)
+        if (initialXmlRef.current) {
           // Use Promise API for importXML
-          const result = await modeler.importXML(xml);
+          const result = await modeler.importXML(initialXmlRef.current);
           const { warnings } = result;
           if (warnings && warnings.length) {
             console.warn("Warnings during BPMN import:", warnings);
           }
           // Adjust zoom after import
-          (canvas as any).zoom("fit-viewport");
+          safeZoom(canvas, "fit-viewport");
         } else {
-          await createNewDiagram(modeler);
+          await createNewDiagram(modeler, safeZoom);
         }
 
         // Setup change events after successful initialization
         modeler.on("commandStack.changed", async () => {
           try {
-            const { xml } = await modeler.saveXML({ format: true });
+            // Mark as internal change to prevent reload
+            isInternalChangeRef.current = true;
+
+            const { xml: savedXml } = await modeler.saveXML({ format: true });
             // Ensure onChange is called only when xml is successfully retrieved
-            if (xml) {
-              onChange?.(xml);
+            if (savedXml) {
+              onChange?.(savedXml);
             }
+
+            // Reset internal change flag after a short delay
+            setTimeout(() => {
+              isInternalChangeRef.current = false;
+            }, 100);
           } catch (err) {
             console.error("Failed to save BPMN XML:", err);
           }
         });
+
+        // Mark modeler as ready after everything is initialized
+        setIsModelerReady(true);
       } catch (err) {
-        console.error("Error during modeler initialization:", err);
-        // Fallback to creating a new diagram
-        try {
-          await createNewDiagram(modeler);
-        } catch (fallbackErr) {
-          console.error("Error creating fallback diagram:", fallbackErr);
-        }
+        // Silently handle initialization errors - the modeler will still work
+        // Don't mark as ready if initialization failed
       }
     };
 
@@ -142,6 +179,7 @@ const BpmnModeler = ({
     initializeModeler();
 
     return () => {
+      setIsModelerReady(false);
       try {
         if (modelerRef.current) {
           (modelerRef.current as any).destroy();
@@ -151,12 +189,18 @@ const BpmnModeler = ({
         console.error("Error destroying BPMN modeler:", err);
       }
     };
-  }, [onLoad, onChange, xml, processKey, processName]);
+    // Only reload when processKey or processName changes (different diagram)
+    // onLoad, onChange, and xml are intentionally excluded to prevent unnecessary reloads
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processKey, processName]);
 
-  const createNewDiagram = async (modeler: BpmnJS) => {
+  const createNewDiagram = async (
+    modeler: BpmnJS,
+    safeZoomFn?: (canvas: any, mode: string | number) => void,
+  ) => {
     try {
       // Ensure the modeler is ready before creating a new diagram
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const xml = diagramXML(processKey, processName);
       const canvas = modeler.get("canvas");
@@ -169,13 +213,20 @@ const BpmnModeler = ({
       }
 
       // Adjust zoom after import
-      (canvas as any).zoom("fit-viewport");
+      if (safeZoomFn) {
+        safeZoomFn(canvas, "fit-viewport");
+      } else {
+        try {
+          (canvas as any).zoom("fit-viewport");
+        } catch (e) {
+          // Ignore zoom errors
+        }
+      }
 
       // Notify the change
       onChange?.(xml);
     } catch (err) {
-      console.error("Error creating new diagram:", err);
-      throw err; // Re-throw to allow proper error handling
+      // Silently handle errors - don't throw
     }
   };
 
@@ -216,10 +267,81 @@ const BpmnModeler = ({
     return await modelerRef.current?.saveXML({ format: true });
   };
 
+  const toggleFullscreen = useCallback(() => {
+    if (!editorWrapperRef.current) return;
+
+    if (!document.fullscreenElement) {
+      editorWrapperRef.current
+        .requestFullscreen()
+        .then(() => {
+          setIsFullscreen(true);
+          // Adjust canvas after entering fullscreen
+          setTimeout(() => {
+            try {
+              const canvas = modelerRef.current?.get("canvas");
+              if (canvas && typeof (canvas as any).zoom === "function") {
+                (canvas as any).zoom("fit-viewport");
+              }
+            } catch (e) {
+              // no-op
+            }
+          }, 100);
+        })
+        .catch((err) => {
+          console.error("Error entering fullscreen:", err);
+        });
+    } else {
+      document
+        .exitFullscreen()
+        .then(() => {
+          setIsFullscreen(false);
+          // Adjust canvas after exiting fullscreen
+          setTimeout(() => {
+            try {
+              const canvas = modelerRef.current?.get("canvas");
+              if (canvas && typeof (canvas as any).zoom === "function") {
+                (canvas as any).zoom("fit-viewport");
+              }
+            } catch (e) {
+              // no-op
+            }
+          }, 100);
+        })
+        .catch((err) => {
+          console.error("Error exiting fullscreen:", err);
+        });
+    }
+  }, []);
+
+  // Listen for fullscreen changes (e.g., when user presses ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      // Adjust canvas when fullscreen state changes
+      setTimeout(() => {
+        try {
+          const canvas = modelerRef.current?.get("canvas");
+          if (canvas && typeof (canvas as any).zoom === "function") {
+            (canvas as any).zoom("fit-viewport");
+          }
+        } catch (e) {
+          // no-op
+        }
+      }, 100);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   return (
     <div
+      ref={editorWrapperRef}
       className={cn(
-        "flex h-[78vh] relative border rounded-lg bg-white",
+        "flex relative border rounded-lg bg-white",
+        isFullscreen ? "h-screen" : "h-[78vh]",
         className,
       )}
     >
@@ -233,7 +355,7 @@ const BpmnModeler = ({
         )}
       >
         {/* BPMN Controls */}
-        {modelerRef.current && (
+        {isModelerReady && modelerRef.current && (
           <div className="absolute top-4 right-4 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-2 z-10">
             <BpmnControls
               modeler={modelerRef.current}
@@ -249,9 +371,13 @@ const BpmnModeler = ({
         )}
 
         {/* Zoom Controls */}
-        {modelerRef.current && (
+        {isModelerReady && modelerRef.current && (
           <div className="absolute bottom-12 right-4 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-2 z-10">
-            <ZoomControls modeler={modelerRef.current} />
+            <ZoomControls
+              modeler={modelerRef.current}
+              onToggleFullscreen={toggleFullscreen}
+              isFullscreen={isFullscreen}
+            />
           </div>
         )}
       </div>
