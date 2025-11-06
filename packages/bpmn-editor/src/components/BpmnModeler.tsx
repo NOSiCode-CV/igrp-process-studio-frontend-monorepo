@@ -257,6 +257,9 @@ const BpmnModeler = ({
     (modelerRef.current?.get("canvas") as any).zoom("fit-viewport");
 
     (canvas as any).zoom("fit-viewport");
+
+    // Notify the change
+    onChange?.(xml);
   };
 
   const onDownLoadSvg = async (): Promise<SaveSVGResult | undefined> => {
