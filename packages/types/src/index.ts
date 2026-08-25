@@ -8,11 +8,48 @@ export interface AuditUser {
   sub: string;
 }
 
+export interface EnumItem {
+  value: string;
+  label: string;
+}
+
+export type ProcessDefinitionState =
+  | 'DRAFT'
+  | 'VALIDATED'
+  | 'PUBLISHED'
+  | 'DEPRECATED'
+  | 'ARCHIVED'
+  | 'DISABLED'
+  | 'ERROR'
+  | 'DELETED';
+
+export type ProjectFilter = {
+  appCode?: string;
+  pageNumber?: string | number;
+  pageSize?: string | number;
+};
+
+export type ProjectProcessFilter = {
+  processName?: string;
+  processKey?: string;
+  pageSize?: string | number;
+  pageNumber?: string | number;
+};
+
+export type ProjectRequest = {
+  code: string;
+  name: string;
+  description?: string;
+  appCode?: string;
+};
+
 export type Project = {
   code: string;
   name: string;
   description: string;
   projectId: string;
+  active?: boolean;
+  appCode?: string;
   processDefinitions: ProcessDefinition[];
   createdBy?: AuditUser;
   createdDate?: string;
@@ -30,15 +67,47 @@ export interface PaginatedResponse<T> {
   content: T[];
 }
 
+export interface ArtifactVariable {
+  artifactVariableId: string;
+  key: string;
+  name: string;
+  type: string;
+  defaultValue: string;
+  required: boolean;
+}
+
+export interface ProcessArtifact {
+  projectArtifactId: string;
+  taskKey: string;
+  name: string;
+  formKey: string;
+  subProcessId?: string;
+  subProcessName?: string;
+  artifactVariables?: ArtifactVariable[];
+  subProcessTask?: boolean;
+}
+
+export type ProcessDefinitionRequest = {
+  title: string;
+  processKey: string;
+  description?: string;
+  projectId?: string;
+  status?: ProcessDefinitionState | string;
+};
+
 export interface ProcessDefinition {
   title: string;
   description: string;
   projectId: string;
   status: string;
   processDefinitionId: string;
-  version: string;
+  /**
+   * List/detail payloads return `int32`. Some older consumers still stringify it.
+   */
+  version: string | number;
   statusDesc: string;
-  bpmFileContent: string;
+  /** Present on the detail DTO; omitted from the list Light DTO. */
+  bpmFileContent?: string;
   processKey: string;
   bpmnDiagramUrl?: string;
   deploymentId?: string;
@@ -49,6 +118,7 @@ export interface ProcessDefinition {
    * normalize for display.
    */
   deploymentDate?: string | number[];
+  processArtifacts?: ProcessArtifact[];
   createdBy?: AuditUser;
   createdDate?: string;
   lastModifiedBy?: AuditUser;
@@ -76,6 +146,7 @@ export interface VariableDefinition {
   type: string;
   defaultValue: string;
   required: boolean;
+  processDefinitionId?: string;
 }
 
 // Process Studio Client Types

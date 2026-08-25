@@ -2,12 +2,38 @@ import { BaseApiClient } from './base-api-client';
 import { ApiClientConfig } from './types';
 import type {
   ProcessDefinition,
+  ProcessDefinitionRequest,
   Project,
+  ProjectFilter,
+  ProjectProcessFilter,
+  ProjectRequest,
   PaginatedResponse,
   ProcessDefinitionContent,
   ProcessDefinitionFilter,
   VariableDefinition,
+  EnumItem,
 } from '@igrp/framework-process-studio-types';
+
+function toProjectRequest(project: Project): ProjectRequest {
+  return {
+    code: project.code,
+    name: project.name,
+    description: project.description,
+    appCode: project.appCode,
+  };
+}
+
+function toProcessDefinitionRequest(
+  processDefinition: ProcessDefinition,
+): ProcessDefinitionRequest {
+  return {
+    title: processDefinition.title,
+    processKey: processDefinition.processKey,
+    description: processDefinition.description,
+    projectId: processDefinition.projectId,
+    status: processDefinition.status,
+  };
+}
 
 export class ProcessStudioApiClient extends BaseApiClient {
   constructor(config: ApiClientConfig) {
@@ -15,8 +41,11 @@ export class ProcessStudioApiClient extends BaseApiClient {
   }
 
   // Project endpoints
-  async getProjects(): Promise<PaginatedResponse<Project>> {
-    const response = await this.get<PaginatedResponse<Project>>('/api/v1/projects');
+  async getProjects(filter?: ProjectFilter): Promise<PaginatedResponse<Project>> {
+    const response = await this.get<PaginatedResponse<Project>>(
+      '/api/v1/projects',
+      filter as Record<string, any> | undefined,
+    );
     return response.data;
   }
 
@@ -26,17 +55,41 @@ export class ProcessStudioApiClient extends BaseApiClient {
   }
 
   async createProject(project: Project): Promise<Project> {
-    const response = await this.post<Project>('/api/v1/projects', project);
+    const response = await this.post<Project>('/api/v1/projects', toProjectRequest(project));
     return response.data;
   }
 
   async updateProject(project: Project): Promise<Project> {
-    const response = await this.put<Project>('/api/v1/projects', project);
+    const response = await this.put<Project>(
+      `/api/v1/projects/${project.projectId}`,
+      toProjectRequest(project),
+    );
     return response.data;
   }
 
-  async deleteProject(code: string): Promise<any> {
-    const response = await this.delete<any>(`/api/v1/projects/${code}`);
+  async enableProject(projectId: string): Promise<unknown> {
+    const response = await this.patch<unknown>(`/api/v1/projects/${projectId}/enable`);
+    return response.data;
+  }
+
+  async disableProject(projectId: string): Promise<unknown> {
+    const response = await this.patch<unknown>(`/api/v1/projects/${projectId}/disable`);
+    return response.data;
+  }
+
+  async getDeployedProcesses(projectId: string, filter?: ProjectProcessFilter): Promise<Project> {
+    const response = await this.get<Project>(
+      `/api/v1/projects/${projectId}/deployed-process`,
+      filter as Record<string, any> | undefined,
+    );
+    return response.data;
+  }
+
+  async getProcessHistory(projectId: string, filter?: ProjectProcessFilter): Promise<Project> {
+    const response = await this.get<Project>(
+      `/api/v1/projects/${projectId}/history-process`,
+      filter as Record<string, any> | undefined,
+    );
     return response.data;
   }
 
@@ -58,9 +111,16 @@ export class ProcessStudioApiClient extends BaseApiClient {
     return response.data;
   }
 
-  async deleteProcessDefinition(processDefinitionId: string): Promise<any> {
-    const response = await this.patch<any>(
+  async deleteProcessDefinition(processDefinitionId: string): Promise<unknown> {
+    const response = await this.patch<unknown>(
       `/api/v1/projects/process-definitions/${processDefinitionId}/delete`,
+    );
+    return response.data;
+  }
+
+  async restoreProcessDefinition(processDefinitionId: string): Promise<unknown> {
+    const response = await this.patch<unknown>(
+      `/api/v1/projects/process-definitions/${processDefinitionId}/restore`,
     );
     return response.data;
   }
@@ -71,39 +131,39 @@ export class ProcessStudioApiClient extends BaseApiClient {
   ): Promise<ProcessDefinition> {
     const response = await this.post<ProcessDefinition>(
       `/api/v1/projects/${projectId}/process-definitions`,
-      processDefinition,
+      toProcessDefinitionRequest(processDefinition),
     );
     return response.data;
   }
 
   async updateProcessDefinition(
-    projectId: string,
+    processId: string,
     processDefinition: ProcessDefinition,
   ): Promise<ProcessDefinition> {
     const response = await this.put<ProcessDefinition>(
-      `/api/v1/projects/process-definitions/${projectId}`,
-      processDefinition,
+      `/api/v1/projects/process-definitions/${processId}`,
+      toProcessDefinitionRequest(processDefinition),
     );
     return response.data;
   }
 
   async saveDiagramProcessDefinition(
-    processkey: string,
+    processKey: string,
     processDefinition: ProcessDefinitionContent,
-  ): Promise<any> {
-    const response = await this.put<any>(
-      `/api/v1/projects/process-definitions/${processkey}/diagram`,
+  ): Promise<ProcessDefinition> {
+    const response = await this.put<ProcessDefinition>(
+      `/api/v1/projects/process-definitions/${processKey}/diagram`,
       processDefinition,
     );
     return response.data;
   }
 
   async deployProcessDefinition(
-    processkey: string,
+    processKey: string,
     processDefinition: ProcessDefinitionContent,
-  ): Promise<any> {
-    const response = await this.post<any>(
-      `/api/v1/projects/process-definitions/${processkey}/deploy`,
+  ): Promise<ProcessDefinition> {
+    const response = await this.post<ProcessDefinition>(
+      `/api/v1/projects/process-definitions/${processKey}/deploy`,
       processDefinition,
     );
     return response.data;
@@ -124,6 +184,11 @@ export class ProcessStudioApiClient extends BaseApiClient {
     const response = await this.get<VariableDefinition[]>(
       `/api/v1/projects/process-definitions/${processDefinitionId}/variables`,
     );
+    return response.data;
+  }
+
+  async getProcessDefinitionStates(): Promise<EnumItem[]> {
+    const response = await this.get<EnumItem[]>('/parameterization/process-definition-state');
     return response.data;
   }
 }

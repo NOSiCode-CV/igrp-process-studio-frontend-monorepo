@@ -3,6 +3,7 @@ import type {
   ProcessDefinition,
   ProcessDefinitionFilter,
   VariableDefinition,
+  EnumItem,
 } from '@igrp/framework-process-studio-types';
 import { ProcessDefinitionContent } from '@igrp/framework-process-studio-types';
 import { ProcessStudioApiClient } from '../utils/process-studio-api-client';
@@ -19,8 +20,12 @@ export const createProcessDefinitionFunctions = (apiClient: ProcessStudioApiClie
       return apiClient.getProcessDefinitionById(processDefinitionId);
     },
 
-    deleteProcessDefinition: async (processDefinitionId: string): Promise<any> => {
+    deleteProcessDefinition: async (processDefinitionId: string): Promise<unknown> => {
       return apiClient.deleteProcessDefinition(processDefinitionId);
+    },
+
+    restoreProcessDefinition: async (processDefinitionId: string): Promise<unknown> => {
+      return apiClient.restoreProcessDefinition(processDefinitionId);
     },
 
     createProcessDefinition: async (
@@ -31,34 +36,37 @@ export const createProcessDefinitionFunctions = (apiClient: ProcessStudioApiClie
     },
 
     updateProcessDefinition: async (
-      projectId: string,
+      processId: string,
       processDefinition: ProcessDefinition,
     ): Promise<ProcessDefinition> => {
-      return apiClient.updateProcessDefinition(projectId, processDefinition);
+      return apiClient.updateProcessDefinition(processId, processDefinition);
     },
 
     createOrUpdateProcessDefinition: async (
       processDefinition: ProcessDefinition,
     ): Promise<ProcessDefinition> => {
       if (processDefinition.processDefinitionId) {
-        return apiClient.updateProcessDefinition(processDefinition.projectId, processDefinition);
+        return apiClient.updateProcessDefinition(
+          processDefinition.processDefinitionId,
+          processDefinition,
+        );
       } else {
         return apiClient.createProcessDefinition(processDefinition.projectId, processDefinition);
       }
     },
 
     saveDiagramProcessDefinition: async (
-      processkey: string,
+      processKey: string,
       processDefinition: ProcessDefinitionContent,
-    ): Promise<any> => {
-      return apiClient.saveDiagramProcessDefinition(processkey, processDefinition);
+    ): Promise<ProcessDefinition> => {
+      return apiClient.saveDiagramProcessDefinition(processKey, processDefinition);
     },
 
     deployProcessDefinition: async (
-      processkey: string,
+      processKey: string,
       processDefinition: ProcessDefinitionContent,
-    ): Promise<any> => {
-      return apiClient.deployProcessDefinition(processkey, processDefinition);
+    ): Promise<ProcessDefinition> => {
+      return apiClient.deployProcessDefinition(processKey, processDefinition);
     },
 
     createOrUpdateVariable: async (
@@ -70,6 +78,10 @@ export const createProcessDefinitionFunctions = (apiClient: ProcessStudioApiClie
 
     getVariables: async (processDefinitionId: string): Promise<VariableDefinition[]> => {
       return apiClient.getVariables(processDefinitionId);
+    },
+
+    getProcessDefinitionStates: async (): Promise<EnumItem[]> => {
+      return apiClient.getProcessDefinitionStates();
     },
   };
 };

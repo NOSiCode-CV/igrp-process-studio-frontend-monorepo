@@ -4,7 +4,10 @@ import type {
   PaginatedResponse,
   ProcessDefinitionContent,
   ProcessDefinitionFilter,
+  ProjectFilter,
+  ProjectProcessFilter,
   VariableDefinition,
+  EnumItem,
 } from './index';
 
 export interface ProcessStudioClientConfig {
@@ -16,30 +19,40 @@ export interface ProcessStudioClientConfig {
 
 export interface ProcessStudioClient {
   projects: {
-    getAll: () => Promise<PaginatedResponse<Project>>;
+    getAll: (filter?: ProjectFilter) => Promise<PaginatedResponse<Project>>;
     getById: (id: string) => Promise<Project>;
     create: (project: Project) => Promise<Project>;
     update: (project: Project) => Promise<Project>;
     createOrUpdate: (project: Project) => Promise<Project>;
-    delete: (code: string) => Promise<any>;
+    enable: (projectId: string) => Promise<unknown>;
+    disable: (projectId: string) => Promise<unknown>;
+    /** Soft-deletes a project via `PATCH /projects/{id}/disable`. */
+    delete: (projectId: string) => Promise<unknown>;
+    getDeployedProcesses: (projectId: string, filter?: ProjectProcessFilter) => Promise<Project>;
+    getProcessHistory: (projectId: string, filter?: ProjectProcessFilter) => Promise<Project>;
   };
   processDefinitions: {
     getAll: () => Promise<ProcessDefinition[]>;
     list: (filter?: ProcessDefinitionFilter) => Promise<PaginatedResponse<ProcessDefinition>>;
     getById: (id: string) => Promise<ProcessDefinition>;
-    delete: (id: string) => Promise<any>;
+    delete: (id: string) => Promise<unknown>;
+    restore: (id: string) => Promise<unknown>;
     create: (projectId: string, processDefinition: ProcessDefinition) => Promise<ProcessDefinition>;
-    update: (projectId: string, processDefinition: ProcessDefinition) => Promise<ProcessDefinition>;
+    update: (processId: string, processDefinition: ProcessDefinition) => Promise<ProcessDefinition>;
     createOrUpdate: (processDefinition: ProcessDefinition) => Promise<ProcessDefinition>;
     saveDiagram: (
-      processkey: string,
+      processKey: string,
       processDefinition: ProcessDefinitionContent,
-    ) => Promise<Response>;
-    deploy: (processkey: string, processDefinition: ProcessDefinitionContent) => Promise<Response>;
+    ) => Promise<ProcessDefinition>;
+    deploy: (
+      processKey: string,
+      processDefinition: ProcessDefinitionContent,
+    ) => Promise<ProcessDefinition>;
     createOrUpdateVariable: (
       processDefinitionId: string,
       variable: VariableDefinition[],
     ) => Promise<VariableDefinition[]>;
     getVariables: (processDefinitionId: string) => Promise<VariableDefinition[]>;
+    getStates: () => Promise<EnumItem[]>;
   };
 }

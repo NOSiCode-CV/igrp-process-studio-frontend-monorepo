@@ -6,3 +6,5 @@ allowBuilds:
   '@swc/core': true
   '@tailwindcss/oxide': true
   sharp: true
+minimumReleaseAgeExclude:
+  - '@igrp/framework-process-studio-types@0.0.1-beta.16'

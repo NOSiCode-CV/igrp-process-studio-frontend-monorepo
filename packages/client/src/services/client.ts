@@ -22,21 +22,26 @@ export function createProcessStudioClient(config: ProcessStudioClientConfig): Pr
       create: projectFunctions.createProject,
       update: projectFunctions.updateProject,
       createOrUpdate: projectFunctions.createOrUpdateProject,
-      delete: projectFunctions.deleteProject,
+      enable: projectFunctions.enableProject,
+      disable: projectFunctions.disableProject,
+      delete: projectFunctions.disableProject,
+      getDeployedProcesses: projectFunctions.getDeployedProcesses,
+      getProcessHistory: projectFunctions.getProcessHistory,
     },
     processDefinitions: {
       getAll: async () => {
-        const projects = await projectFunctions.getProject();
+        const projects = await projectFunctions.getProject({ pageNumber: '0', pageSize: '100' });
         return projects.content.flatMap((project) =>
           project.processDefinitions.map((pd) => ({
             ...pd,
-            version: pd.version || 'N/D',
+            version: pd.version ?? 'N/D',
           })),
         );
       },
       list: processDefinitionFunctions.getProcessDefinitions,
       getById: processDefinitionFunctions.getProcessDefinitionById,
       delete: processDefinitionFunctions.deleteProcessDefinition,
+      restore: processDefinitionFunctions.restoreProcessDefinition,
       create: processDefinitionFunctions.createProcessDefinition,
       update: processDefinitionFunctions.updateProcessDefinition,
       createOrUpdate: processDefinitionFunctions.createOrUpdateProcessDefinition,
@@ -44,6 +49,7 @@ export function createProcessStudioClient(config: ProcessStudioClientConfig): Pr
       deploy: processDefinitionFunctions.deployProcessDefinition,
       createOrUpdateVariable: processDefinitionFunctions.createOrUpdateVariable,
       getVariables: processDefinitionFunctions.getVariables,
+      getStates: processDefinitionFunctions.getProcessDefinitionStates,
     },
   };
 }

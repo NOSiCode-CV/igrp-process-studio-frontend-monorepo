@@ -1,14 +1,19 @@
-import type { Project, PaginatedResponse } from '@igrp/framework-process-studio-types';
+import type {
+  Project,
+  PaginatedResponse,
+  ProjectFilter,
+  ProjectProcessFilter,
+} from '@igrp/framework-process-studio-types';
 import { ProcessStudioApiClient } from '../utils/process-studio-api-client';
 
 export const createProjectFunctions = (apiClient: ProcessStudioApiClient) => {
   return {
-    getProject: async (): Promise<PaginatedResponse<Project>> => {
-      return apiClient.getProjects();
+    getProject: async (filter?: ProjectFilter): Promise<PaginatedResponse<Project>> => {
+      return apiClient.getProjects(filter);
     },
 
-    getProjectById: async (code: string): Promise<Project> => {
-      return apiClient.getProjectById(code);
+    getProjectById: async (projectId: string): Promise<Project> => {
+      return apiClient.getProjectById(projectId);
     },
 
     createOrUpdateProject: async (project: Project): Promise<Project> => {
@@ -27,8 +32,26 @@ export const createProjectFunctions = (apiClient: ProcessStudioApiClient) => {
       return apiClient.updateProject(project);
     },
 
-    deleteProject: async (code: string): Promise<any> => {
-      return apiClient.deleteProject(code);
+    enableProject: async (projectId: string): Promise<unknown> => {
+      return apiClient.enableProject(projectId);
+    },
+
+    disableProject: async (projectId: string): Promise<unknown> => {
+      return apiClient.disableProject(projectId);
+    },
+
+    getDeployedProcesses: async (
+      projectId: string,
+      filter?: ProjectProcessFilter,
+    ): Promise<Project> => {
+      return apiClient.getDeployedProcesses(projectId, filter);
+    },
+
+    getProcessHistory: async (
+      projectId: string,
+      filter?: ProjectProcessFilter,
+    ): Promise<Project> => {
+      return apiClient.getProcessHistory(projectId, filter);
     },
   };
 };
